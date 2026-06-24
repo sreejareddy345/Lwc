@@ -1,0 +1,412 @@
+<template>
+    <lightning-card>
+        <!-- Header -->
+        <div class="slds-page-header slds-m-bottom_medium" slot="title">
+            <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                <div>
+                    <h1 class="slds-text-heading_large">
+                        <lightning-icon icon-name="standard:shield" size="medium" class="slds-m-right_small"></lightning-icon>
+                        SSA Org Analyzer
+                    </h1>
+                    <p class="slds-text-body_small slds-m-top_xx-small">Analyze profiles, permission sets, PSGs, object permissions and users</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <lightning-tabset active-tab-value={activeTab} onactive={handleTabChange}>
+
+            <!-- TAB 1: Object Permissions -->
+            <lightning-tab label="Object Permissions" value="objectPerms" icon-name="standard:record">
+                <div class="slds-p-around_medium">
+                    <!-- Filters -->
+                    <div class="slds-box slds-m-bottom_medium filter-box">
+                        <h2 class="slds-text-heading_small slds-m-bottom_small">Filters</h2>
+                        <div class="slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-combobox
+                                    label="Object"
+                                    value={objFilter}
+                                    options={objectOptions}
+                                    onchange={handleObjFilterChange}
+                                    placeholder="Select Object">
+                                </lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-combobox
+                                    label="Profile"
+                                    value={objProfileFilter}
+                                    options={profileOptions}
+                                    onchange={handleObjProfileChange}
+                                    placeholder="Select Profile">
+                                </lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-combobox
+                                    label="Permission Set"
+                                    value={objPermSetFilter}
+                                    options={permSetOptions}
+                                    onchange={handleObjPermSetChange}
+                                    placeholder="Select Permission Set">
+                                </lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-combobox
+                                    label="CRED Filter"
+                                    value={crudFilter}
+                                    options={crudOptions}
+                                    onchange={handleCrudFilterChange}>
+                                </lightning-combobox>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_medium">
+                            <lightning-button variant="brand" label="Analyze" icon-name="utility:search" onclick={handleAnalyzeObjectPerms} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="neutral" label="Download CSV" icon-name="utility:download" onclick={handleDownloadObjectPerms} disabled={noObjectData}></lightning-button>
+                            <lightning-button variant="neutral" label="Clear" icon-name="utility:clear" onclick={handleClearObjectPerms} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </div>
+
+                    <!-- Loading -->
+                    <template if:true={isLoadingObj}>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </template>
+
+                    <!-- Summary Cards -->
+                    <template if:true={objectPermData}>
+                        <div class="slds-grid slds-gutters slds-m-bottom_medium slds-wrap">
+                            <div class="slds-col slds-size_1-of-5">
+                                <div class="summary-card blue">
+                                    <div class="card-number">{objectPermData.totalEntries}</div>
+                                    <div class="card-label">Total Entries</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-5">
+                                <div class="summary-card green">
+                                    <div class="card-number">{objObjectCount}</div>
+                                    <div class="card-label">Objects</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-5">
+                                <div class="summary-card purple">
+                                    <div class="card-number">{objectPermData.fullCrudCount}</div>
+                                    <div class="card-label">Full CRED</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-5">
+                                <div class="summary-card red">
+                                    <div class="card-number">{objectPermData.modifyAllCount}</div>
+                                    <div class="card-label">Modify All</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-5">
+                                <div class="summary-card orange">
+                                    <div class="card-number">{objRowCount}</div>
+                                    <div class="card-label">Rows Shown</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <lightning-datatable
+                            key-field="id"
+                            data={objectPermRows}
+                            columns={objectPermColumns}
+                            hide-checkbox-column
+                            show-row-number-column
+                            sorted-by={objSortedBy}
+                            sorted-direction={objSortedDirection}
+                            onsort={handleObjSort}
+                            max-row-selection="0">
+                        </lightning-datatable>
+                    </template>
+                </div>
+            </lightning-tab>
+
+            <!-- TAB 2: Profiles -->
+            <lightning-tab label="Profiles" value="profiles" icon-name="standard:user">
+                <div class="slds-p-around_medium">
+                    <div class="slds-box slds-m-bottom_medium filter-box">
+                        <h2 class="slds-text-heading_small slds-m-bottom_small">Filters</h2>
+                        <div class="slds-grid slds-gutters">
+                            <div class="slds-col slds-size_1-of-3">
+                                <lightning-combobox
+                                    label="Profile"
+                                    value={profileFilter}
+                                    options={profileOptions}
+                                    onchange={handleProfileFilterChange}
+                                    placeholder="Select Profile">
+                                </lightning-combobox>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_medium">
+                            <lightning-button variant="brand" label="Analyze" icon-name="utility:search" onclick={handleAnalyzeProfiles} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="neutral" label="Download CSV" icon-name="utility:download" onclick={handleDownloadProfiles} disabled={noProfileData}></lightning-button>
+                            <lightning-button variant="neutral" label="Clear" icon-name="utility:clear" onclick={handleClearProfiles} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </div>
+
+                    <template if:true={isLoadingProfiles}>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </template>
+
+                    <template if:true={profileData}>
+                        <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card blue">
+                                    <div class="card-number">{profileData.totalProfiles}</div>
+                                    <div class="card-label">Total Profiles</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card green">
+                                    <div class="card-number">{profileData.usedProfiles}</div>
+                                    <div class="card-label">Used</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card red">
+                                    <div class="card-number">{profileData.unusedProfiles}</div>
+                                    <div class="card-label">Unused</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card orange">
+                                    <div class="card-number">{profileRowCount}</div>
+                                    <div class="card-label">Rows</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <lightning-datatable
+                            key-field="id"
+                            data={profileRows}
+                            columns={profileColumns}
+                            hide-checkbox-column
+                            show-row-number-column
+                            sorted-by={profSortedBy}
+                            sorted-direction={profSortedDirection}
+                            onsort={handleProfSort}>
+                        </lightning-datatable>
+                    </template>
+                </div>
+            </lightning-tab>
+
+            <!-- TAB 3: Permission Sets -->
+            <lightning-tab label="Permission Sets" value="permSets" icon-name="standard:permission_set">
+                <div class="slds-p-around_medium">
+                    <div class="slds-box slds-m-bottom_medium filter-box">
+                        <h2 class="slds-text-heading_small slds-m-bottom_small">Filters</h2>
+                        <div class="slds-grid slds-gutters">
+                            <div class="slds-col slds-size_1-of-3">
+                                <lightning-combobox
+                                    label="Permission Set"
+                                    value={psFilter}
+                                    options={permSetOptions}
+                                    onchange={handlePSFilterChange}
+                                    placeholder="Select Permission Set">
+                                </lightning-combobox>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_medium">
+                            <lightning-button variant="brand" label="Analyze" icon-name="utility:search" onclick={handleAnalyzePermSets} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="neutral" label="Download CSV" icon-name="utility:download" onclick={handleDownloadPermSets} disabled={noPermSetData}></lightning-button>
+                            <lightning-button variant="neutral" label="Clear" icon-name="utility:clear" onclick={handleClearPermSets} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </div>
+
+                    <template if:true={isLoadingPS}>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </template>
+
+                    <template if:true={permSetData}>
+                        <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card blue">
+                                    <div class="card-number">{permSetData.totalPS}</div>
+                                    <div class="card-label">Total PS</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card green">
+                                    <div class="card-number">{permSetData.usedPS}</div>
+                                    <div class="card-label">Used</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card red">
+                                    <div class="card-number">{permSetData.unusedPS}</div>
+                                    <div class="card-label">Unused</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card orange">
+                                    <div class="card-number">{psRowCount}</div>
+                                    <div class="card-label">Rows</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <lightning-datatable
+                            key-field="id"
+                            data={permSetRows}
+                            columns={permSetColumns}
+                            hide-checkbox-column
+                            show-row-number-column
+                            sorted-by={psSortedBy}
+                            sorted-direction={psSortedDirection}
+                            onsort={handlePSSort}>
+                        </lightning-datatable>
+                    </template>
+                </div>
+            </lightning-tab>
+
+            <!-- TAB 4: PSGs -->
+            <lightning-tab label="PSGs" value="psgs" icon-name="standard:permission_set_group">
+                <div class="slds-p-around_medium">
+                    <div class="slds-box slds-m-bottom_medium filter-box">
+                        <h2 class="slds-text-heading_small slds-m-bottom_small">Filters</h2>
+                        <div class="slds-grid slds-gutters">
+                            <div class="slds-col slds-size_1-of-3">
+                                <lightning-combobox
+                                    label="Permission Set Group"
+                                    value={psgFilter}
+                                    options={psgOptions}
+                                    onchange={handlePSGFilterChange}
+                                    placeholder="Select PSG">
+                                </lightning-combobox>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_medium">
+                            <lightning-button variant="brand" label="Analyze" icon-name="utility:search" onclick={handleAnalyzePSGs} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="neutral" label="Download CSV" icon-name="utility:download" onclick={handleDownloadPSGs} disabled={noPSGData}></lightning-button>
+                            <lightning-button variant="neutral" label="Clear" icon-name="utility:clear" onclick={handleClearPSGs} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </div>
+
+                    <template if:true={isLoadingPSG}>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </template>
+
+                    <template if:true={psgData}>
+                        <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card blue">
+                                    <div class="card-number">{psgData.totalPSGs}</div>
+                                    <div class="card-label">Total PSGs</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card green">
+                                    <div class="card-number">{psgData.usedPSGs}</div>
+                                    <div class="card-label">Used</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card red">
+                                    <div class="card-number">{psgData.unusedPSGs}</div>
+                                    <div class="card-label">Unused</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="summary-card orange">
+                                    <div class="card-number">{psgRowCount}</div>
+                                    <div class="card-label">Rows</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <lightning-datatable
+                            key-field="id"
+                            data={psgRows}
+                            columns={psgColumns}
+                            hide-checkbox-column
+                            show-row-number-column
+                            sorted-by={psgSortedBy}
+                            sorted-direction={psgSortedDirection}
+                            onsort={handlePSGSort}>
+                        </lightning-datatable>
+                    </template>
+                </div>
+            </lightning-tab>
+
+            <!-- TAB 5: Users -->
+            <lightning-tab label="Users" value="users" icon-name="standard:people">
+                <div class="slds-p-around_medium">
+                    <div class="slds-box slds-m-bottom_medium filter-box">
+                        <h2 class="slds-text-heading_small slds-m-bottom_small">Filters</h2>
+                        <div class="slds-grid slds-gutters">
+                            <div class="slds-col slds-size_1-of-3">
+                                <lightning-combobox
+                                    label="Profile"
+                                    value={userProfileFilter}
+                                    options={profileOptions}
+                                    onchange={handleUserProfileChange}
+                                    placeholder="Select Profile">
+                                </lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <lightning-input
+                                    label="User Name"
+                                    value={userNameFilter}
+                                    onchange={handleUserNameChange}
+                                    placeholder="Search by name">
+                                </lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_medium">
+                            <lightning-button variant="brand" label="Analyze" icon-name="utility:search" onclick={handleAnalyzeUsers} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="neutral" label="Download CSV" icon-name="utility:download" onclick={handleDownloadUsers} disabled={noUserData}></lightning-button>
+                            <lightning-button variant="neutral" label="Clear" icon-name="utility:clear" onclick={handleClearUsers} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </div>
+
+                    <template if:true={isLoadingUsers}>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </template>
+
+                    <template if:true={userData}>
+                        <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                            <div class="slds-col slds-size_1-of-3">
+                                <div class="summary-card blue">
+                                    <div class="card-number">{userData.totalUsers}</div>
+                                    <div class="card-label">Total Users</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <div class="summary-card green">
+                                    <div class="card-number">{userData.activeUsers}</div>
+                                    <div class="card-label">Active</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <div class="summary-card red">
+                                    <div class="card-number">{userData.inactiveUsers}</div>
+                                    <div class="card-label">Inactive</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <lightning-datatable
+                            key-field="id"
+                            data={userRows}
+                            columns={userColumns}
+                            hide-checkbox-column
+                            show-row-number-column
+                            sorted-by={userSortedBy}
+                            sorted-direction={userSortedDirection}
+                            onsort={handleUserSort}>
+                        </lightning-datatable>
+                    </template>
+                </div>
+            </lightning-tab>
+
+        </lightning-tabset>
+
+        <!-- Toast-like status -->
+        <template if:true={statusMessage}>
+            <div class="slds-notify slds-notify_toast slds-theme_success status-toast">
+                <span>{statusMessage}</span>
+            </div>
+        </template>
+    </lightning-card>
+</template>

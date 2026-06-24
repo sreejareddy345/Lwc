@@ -1,0 +1,90 @@
+<template>
+    <lightning-card title="🎵 Spotify Mood Player">
+
+        <!-- NOT CONNECTED -->
+        <template if:false={isConnected}>
+            <div class="slds-align_absolute-center slds-p-around_xl">
+                <p>Connect your Spotify to get started</p>
+                <lightning-button 
+                    label="Connect Spotify"
+                    variant="brand" 
+                    onclick={connectSpotify}>
+                </lightning-button>
+            </div>
+        </template>
+
+        <!-- CONNECTED -->
+        <template if:true={isConnected}>
+
+            <!-- PLAYLIST LIST VIEW -->
+            <template if:false={selectedPlaylist}>
+                <div class="slds-p-around_medium">
+                    <template for:each={playlists} for:item="pl">
+                        <div key={pl.id} 
+                            class="slds-box slds-m-bottom_small slds-p-around_small" 
+                            onclick={openPlaylist} 
+                            data-id={pl.id}
+                            style="cursor:pointer; display:flex; align-items:center; gap:12px;">
+                            <img src={pl.image} 
+                                style="width:60px; height:60px; object-fit:cover; border-radius:4px;"
+                                alt={pl.name}/>
+                            <div>
+                                <p style="font-weight:bold; margin:0;">{pl.name}</p>
+                                <p style="color:#666; margin:0;">{pl.tracksTotal} tracks</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- TRACK VIEW -->
+            <template if:true={selectedPlaylist}>
+                <div class="slds-p-around_medium">
+                    <lightning-button 
+                        label="← Back to Playlists" 
+                        variant="base"
+                        onclick={goBack}>
+                    </lightning-button>
+                    <h2 class="slds-text-heading_medium slds-m-vertical_small">
+                        {selectedPlaylist.name}
+                    </h2>
+                    <template for:each={tracks} for:item="track">
+                        <div key={track.id} 
+                            style="display:flex; align-items:center; gap:12px; padding:8px; border-bottom:1px solid #eee;">
+                            <img src={track.art} 
+                                style="width:50px; height:50px; object-fit:cover; border-radius:4px;"
+                                alt={track.name}/>
+                            <div style="flex:1;">
+                                <p style="font-weight:bold; margin:0;">{track.name}</p>
+                                <p style="color:#666; margin:0;">{track.artist}</p>
+                            </div>
+                            <lightning-button-icon 
+                                icon-name="utility:play"
+                                variant="brand" 
+                                onclick={playTrack}
+                                data-uri={track.uri} 
+                                data-url={track.url}
+                                alternative-text="Play on Spotify">
+                            </lightning-button-icon>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+        </template>
+
+        <!-- ERROR -->
+        <template if:true={errorMessage}>
+            <div class="slds-p-around_medium" 
+                style="background:#fdd; color:#900; border-radius:4px; margin:8px;">
+                <p>{errorMessage}</p>
+            </div>
+        </template>
+
+        <!-- LOADING -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading..."></lightning-spinner>
+        </template>
+
+    </lightning-card>
+</template>
